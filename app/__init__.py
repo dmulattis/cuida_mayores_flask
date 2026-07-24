@@ -6,6 +6,11 @@ from .extensions import db
 
 
 def create_app(test_config: dict | None = None) -> Flask:
+    """Crea y configura la aplicación Flask y sus extensiones.
+
+    Si se entrega ``test_config``, sus valores reemplazan la configuración
+    predeterminada para facilitar la ejecución de pruebas automatizadas.
+    """
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY="dev-cambiar-en-produccion",
@@ -25,6 +30,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.route("/")
     def inicio():
+        """Muestra el panel principal con estadísticas de los cuidadores."""
         total = db.session.scalar(db.select(db.func.count(Cuidador.id))) or 0
         aprobados = db.session.scalar(
             db.select(db.func.count(Cuidador.id)).where(Cuidador.estado_validacion == "Aprobado")
@@ -45,6 +51,7 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.errorhandler(404)
     def no_encontrado(_error):
+        """Renderiza una página personalizada cuando una ruta no existe."""
         return render_template("404.html"), 404
 
     with app.app_context():

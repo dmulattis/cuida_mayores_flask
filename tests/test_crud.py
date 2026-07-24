@@ -6,6 +6,7 @@ from app.models import Cuidador
 
 
 def build_app(tmp_path: Path):
+    """Crea una aplicación de prueba con una base SQLite temporal y aislada."""
     database = tmp_path / "test.db"
     app = create_app(
         {
@@ -18,6 +19,7 @@ def build_app(tmp_path: Path):
 
 
 def test_crud_completo(tmp_path):
+    """Comprueba el flujo completo de creación, edición y eliminación."""
     app = build_app(tmp_path)
     client = app.test_client()
 

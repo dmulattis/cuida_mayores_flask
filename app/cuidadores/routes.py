@@ -21,10 +21,16 @@ ESPECIALIDADES = (
 
 
 def _texto(campo: str) -> str:
+    """Obtiene un campo del formulario y elimina espacios en sus extremos."""
     return request.form.get(campo, "").strip()
 
 
 def _leer_formulario() -> tuple[dict, list[str]]:
+    """Lee, normaliza y valida los datos enviados por el formulario.
+
+    Retorna un diccionario listo para crear o actualizar un cuidador y una
+    lista con los mensajes de validación encontrados.
+    """
     errores: list[str] = []
 
     nombre = _texto("nombre")
@@ -82,6 +88,7 @@ def _leer_formulario() -> tuple[dict, list[str]]:
 
 @bp.route("/")
 def lista():
+    """Lista los cuidadores y aplica los filtros recibidos por la URL."""
     q = request.args.get("q", "").strip()
     comuna = request.args.get("comuna", "").strip()
     especialidad = request.args.get("especialidad", "").strip()
@@ -122,12 +129,14 @@ def lista():
 
 @bp.route("/<int:cuidador_id>")
 def detalle(cuidador_id: int):
+    """Muestra el detalle del cuidador indicado o responde con error 404."""
     cuidador = db.get_or_404(Cuidador, cuidador_id)
     return render_template("cuidadores/detalle.html", cuidador=cuidador)
 
 
 @bp.route("/nuevo", methods=("GET", "POST"))
 def crear():
+    """Muestra el formulario y registra un cuidador cuando se envía por POST."""
     if request.method == "POST":
         datos, errores = _leer_formulario()
         if not errores:
@@ -156,6 +165,7 @@ def crear():
 
 @bp.route("/<int:cuidador_id>/editar", methods=("GET", "POST"))
 def editar(cuidador_id: int):
+    """Muestra el formulario y actualiza el cuidador indicado al recibir POST."""
     cuidador = db.get_or_404(Cuidador, cuidador_id)
 
     if request.method == "POST":
@@ -186,6 +196,7 @@ def editar(cuidador_id: int):
 
 @bp.route("/<int:cuidador_id>/eliminar", methods=("GET", "POST"))
 def eliminar(cuidador_id: int):
+    """Solicita confirmación y elimina el cuidador indicado mediante POST."""
     cuidador = db.get_or_404(Cuidador, cuidador_id)
     if request.method == "POST":
         db.session.delete(cuidador)

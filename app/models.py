@@ -7,6 +7,8 @@ from .extensions import db
 
 
 class Cuidador(db.Model):
+    """Representa un cuidador registrado en la base de datos."""
+
     __tablename__ = "cuidadores"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -23,4 +25,5 @@ class Cuidador(db.Model):
     creado_en: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
     def __repr__(self) -> str:
+        """Devuelve una representación breve del cuidador para depuración."""
         return f"<Cuidador {self.nombre}>"
