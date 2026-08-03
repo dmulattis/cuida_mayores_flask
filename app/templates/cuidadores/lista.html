@@ -2,52 +2,60 @@
 {% extends "base.html" %}
 {% block title %}Cuidadores | Cuida a tus Mayores{% endblock %}
 {% block content %}
-<div class="titulo-con-accion">
+<div class="titulo-con-accion d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <span class="etiqueta">CRUD</span>
-        <h1>Listado de cuidadores</h1>
-        <p>Busca y filtra los perfiles registrados en el sistema.</p>
+        <span class="badge etiqueta">CRUD</span>
+        <h1 class="h2 mb-1">Listado de cuidadores</h1>
+        <p class="mb-0">Busca y filtra los perfiles registrados en el sistema.</p>
     </div>
-    <a class="boton" href="{{ url_for('cuidadores.crear') }}">+ Nuevo cuidador</a>
+    <a class="btn boton" href="{{ url_for('cuidadores.crear') }}">+ Nuevo cuidador</a>
 </div>
 
-<form class="filtros" method="get">
-    <label>Buscar
-        <input type="search" name="q" value="{{ filtros.q }}" placeholder="Nombre, correo o descripción">
-    </label>
-    <label>Comuna
-        <select name="comuna">
-            <option value="">Todas</option>
-            {% for item in comunas %}
-                <option value="{{ item }}" {% if filtros.comuna == item %}selected{% endif %}>{{ item }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <label>Especialidad
-        <select name="especialidad">
-            <option value="">Todas</option>
-            {% for item in especialidades %}
-                <option value="{{ item }}" {% if filtros.especialidad == item %}selected{% endif %}>{{ item }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <label>Validación
-        <select name="estado">
-            <option value="">Todos</option>
-            {% for item in estados %}
-                <option value="{{ item }}" {% if filtros.estado == item %}selected{% endif %}>{{ item }}</option>
-            {% endfor %}
-        </select>
-    </label>
-    <div class="acciones-filtro">
-        <button class="boton" type="submit">Filtrar</button>
-        <a class="boton boton-secundario" href="{{ url_for('cuidadores.lista') }}">Limpiar</a>
+<form class="filtros row g-3 align-items-end mb-4" method="get">
+    <div class="col-12 col-md-4">
+        <label class="form-label w-100">Buscar
+            <input class="form-control" type="search" name="q" value="{{ filtros.q }}" placeholder="Nombre, correo o descripción">
+        </label>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2">
+        <label class="form-label w-100">Comuna
+            <select class="form-select" name="comuna">
+                <option value="">Todas</option>
+                {% for item in comunas %}
+                    <option value="{{ item }}" {% if filtros.comuna == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2">
+        <label class="form-label w-100">Especialidad
+            <select class="form-select" name="especialidad">
+                <option value="">Todas</option>
+                {% for item in especialidades %}
+                    <option value="{{ item }}" {% if filtros.especialidad == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="col-12 col-sm-6 col-md-2">
+        <label class="form-label w-100">Validación
+            <select class="form-select" name="estado">
+                <option value="">Todos</option>
+                {% for item in estados %}
+                    <option value="{{ item }}" {% if filtros.estado == item %}selected{% endif %}>{{ item }}</option>
+                {% endfor %}
+            </select>
+        </label>
+    </div>
+    <div class="col-6 col-md-2 acciones-filtro d-flex gap-2">
+        <button class="btn boton" type="submit">Filtrar</button>
+        <a class="btn boton boton-secundario" href="{{ url_for('cuidadores.lista') }}">Limpiar</a>
     </div>
 </form>
 
 {% if cuidadores %}
-<div class="tabla-contenedor">
-<table>
+<div class="tabla-contenedor table-responsive">
+<table class="table align-middle">
     <thead>
         <tr>
             <th>Nombre</th>
@@ -68,7 +76,7 @@
             <td>${{ "{:,.0f}".format(cuidador.tarifa_diaria).replace(',', '.') }}</td>
             <td><span class="estado {% if cuidador.disponible %}estado-aprobado{% else %}estado-rechazado{% endif %}">{{ "Disponible" if cuidador.disponible else "No disponible" }}</span></td>
             <td><span class="estado estado-{{ cuidador.estado_validacion|lower }}">{{ cuidador.estado_validacion }}</span></td>
-            <td class="acciones-tabla">
+            <td class="acciones-tabla d-flex gap-2 flex-wrap">
                 <a href="{{ url_for('cuidadores.detalle', cuidador_id=cuidador.id) }}">Ver</a>
                 <a href="{{ url_for('cuidadores.editar', cuidador_id=cuidador.id) }}">Editar</a>
                 <a class="enlace-peligro" href="{{ url_for('cuidadores.eliminar', cuidador_id=cuidador.id) }}">Eliminar</a>
@@ -79,8 +87,8 @@
 </table>
 </div>
 {% else %}
-<div class="vacio">
-    <h2>No se encontraron cuidadores</h2>
+<div class="vacio text-center py-5">
+    <h2 class="h4">No se encontraron cuidadores</h2>
     <p>Prueba otros filtros o registra un nuevo perfil.</p>
 </div>
 {% endif %}

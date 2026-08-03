@@ -1,13 +1,18 @@
+<!--Sección de confirmación para eliminar un cuidador en la aplicación web de administración de cuidadores. La plantilla extiende de "base.html" y define el contenido específico para la página de confirmación, mostrando un mensaje de advertencia sobre la acción irreversible de eliminar el registro del cuidador seleccionado, junto con botones para confirmar o cancelar la eliminación.-->
 {% extends "base.html" %}
 {% block title %}Eliminar cuidador | Cuida a tus Mayores{% endblock %}
 {% block content %}
-<section class="panel confirmacion">
-    <span class="etiqueta etiqueta-peligro">Acción irreversible</span>
-    <h1>¿Eliminar a {{ cuidador.nombre }}?</h1>
-    <p>El registro será eliminado de la base de datos. Esta acción no se puede deshacer.</p>
-    <form method="post" class="acciones">
-        <button class="boton boton-peligro" type="submit">Sí, eliminar</button>
-        <a class="boton boton-secundario" href="{{ url_for('cuidadores.detalle', cuidador_id=cuidador.id) }}">Cancelar</a>
-    </form>
-</section>
+<div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+        <section class="panel confirmacion p-4">
+            <span class="badge etiqueta etiqueta-peligro mb-3">Acción irreversible</span>
+            <h1 class="h3">¿Eliminar a {{ cuidador.nombre }}?</h1>
+            <p>El registro será eliminado de la base de datos. Esta acción no se puede deshacer.</p>
+            <form method="post" class="acciones d-flex flex-column flex-sm-row gap-2 mt-4">
+                <button class="btn boton boton-peligro" type="submit">Sí, eliminar</button>
+                <a class="btn boton boton-secundario" href="{{ url_for('cuidadores.detalle', cuidador_id=cuidador.id) }}">Cancelar</a>
+            </form>
+        </section>
+    </div>
+</div>
 {% endblock %}

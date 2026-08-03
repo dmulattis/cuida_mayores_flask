@@ -2,36 +2,42 @@
 {% extends "base.html" %}
 {% block title %}{{ cuidador.nombre }} | Cuida a tus Mayores{% endblock %}
 {% block content %}
-<div class="titulo-con-accion">
+<div class="titulo-con-accion d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
     <div>
-        <a class="volver" href="{{ url_for('cuidadores.lista') }}">← Volver al listado</a>
-        <h1>{{ cuidador.nombre }}</h1>
-        <p>{{ cuidador.especialidad }} · {{ cuidador.comuna }}</p>
+        <a class="volver d-inline-block mb-2" href="{{ url_for('cuidadores.lista') }}">← Volver al listado</a>
+        <h1 class="h2 mb-1">{{ cuidador.nombre }}</h1>
+        <p class="mb-0">{{ cuidador.especialidad }} · {{ cuidador.comuna }}</p>
     </div>
-    <div class="acciones">
-        <a class="boton" href="{{ url_for('cuidadores.editar', cuidador_id=cuidador.id) }}">Editar</a>
-        <a class="boton boton-peligro" href="{{ url_for('cuidadores.eliminar', cuidador_id=cuidador.id) }}">Eliminar</a>
+    <div class="acciones d-flex gap-2">
+        <a class="btn boton" href="{{ url_for('cuidadores.editar', cuidador_id=cuidador.id) }}">Editar</a>
+        <a class="btn boton boton-peligro" href="{{ url_for('cuidadores.eliminar', cuidador_id=cuidador.id) }}">Eliminar</a>
     </div>
 </div>
 
-<section class="detalle-grid">
-    <article class="panel">
-        <h2>Información del perfil</h2>
-        <dl>
-            <div><dt>Correo</dt><dd>{{ cuidador.correo }}</dd></div>
-            <div><dt>Teléfono</dt><dd>{{ cuidador.telefono }}</dd></div>
-            <div><dt>Comuna</dt><dd>{{ cuidador.comuna }}</dd></div>
-            <div><dt>Especialidad</dt><dd>{{ cuidador.especialidad }}</dd></div>
-            <div><dt>Experiencia</dt><dd>{{ cuidador.experiencia_anios }} año(s)</dd></div>
-            <div><dt>Tarifa diaria</dt><dd>${{ "{:,.0f}".format(cuidador.tarifa_diaria).replace(',', '.') }}</dd></div>
-            <div><dt>Disponibilidad</dt><dd>{{ "Disponible" if cuidador.disponible else "No disponible" }}</dd></div>
-            <div><dt>Validación</dt><dd><span class="estado estado-{{ cuidador.estado_validacion|lower }}">{{ cuidador.estado_validacion }}</span></dd></div>
-        </dl>
+<section class="row g-4">
+    <article class="col-12 col-lg-6">
+        <div class="panel h-100 p-4">
+            <h2 class="h4">Información del perfil</h2>
+            <dl class="row mb-0">
+                <dt class="col-5 col-sm-4">Correo</dt><dd class="col-7 col-sm-8">{{ cuidador.correo }}</dd>
+                <dt class="col-5 col-sm-4">Teléfono</dt><dd class="col-7 col-sm-8">{{ cuidador.telefono }}</dd>
+                <dt class="col-5 col-sm-4">Comuna</dt><dd class="col-7 col-sm-8">{{ cuidador.comuna }}</dd>
+                <dt class="col-5 col-sm-4">Especialidad</dt><dd class="col-7 col-sm-8">{{ cuidador.especialidad }}</dd>
+                <dt class="col-5 col-sm-4">Experiencia</dt><dd class="col-7 col-sm-8">{{ cuidador.experiencia_anios }} año(s)</dd>
+                <dt class="col-5 col-sm-4">Tarifa diaria</dt><dd class="col-7 col-sm-8">${{ "{:,.0f}".format(cuidador.tarifa_diaria).replace(',', '.') }}</dd>
+                <dt class="col-5 col-sm-4">Disponibilidad</dt><dd class="col-7 col-sm-8">{{ "Disponible" if cuidador.disponible else "No disponible" }}</dd>
+                <dt class="col-5 col-sm-4">Validación</dt>
+                <dd class="col-7 col-sm-8"><span class="estado estado-{{ cuidador.estado_validacion|lower }}">{{ cuidador.estado_validacion }}</span></dd>
+            </dl>
+        </div>
     </article>
-    <article class="panel">
-        <h2>Descripción</h2>
-        <p class="texto-largo">{{ cuidador.descripcion or "Sin descripción registrada." }}</p>
-        <p class="dato-secundario">Registro creado el {{ cuidador.creado_en.strftime('%d-%m-%Y') }}.</p>
+
+    <article class="col-12 col-lg-6">
+        <div class="panel h-100 p-4">
+            <h2 class="h4">Descripción</h2>
+            <p class="texto-largo">{{ cuidador.descripcion or "Sin descripción registrada." }}</p>
+            <p class="dato-secundario mb-0">Registro creado el {{ cuidador.creado_en.strftime('%d-%m-%Y') }}.</p>
+        </div>
     </article>
 </section>
 {% endblock %}

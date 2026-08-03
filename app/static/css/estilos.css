@@ -85,4 +85,9 @@ dd { margin: 0; }
     nav { padding-bottom: 16px; flex-wrap: wrap; }
     .metricas, .cuadricula-4, .dos-columnas, .filtros { grid-template-columns: 1fr; }
     dl div { grid-template-columns: 1fr; gap: 2px; }
+    /* Ajuste de aire lateral para el contenedor de Bootstrap en pantallas chicas */
+.container {
+    padding-left: 20px;
+    padding-right: 20px;
+}
 }
