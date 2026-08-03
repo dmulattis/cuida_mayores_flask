@@ -1,424 +1,183 @@
-from __future__ import annotations
-
-import re
-
-from flask import (
-    Blueprint,
-    current_app,
-    flash,
-    redirect,
-    render_template,
-    request,
-    url_for,
-)
-from sqlalchemy import or_
-from sqlalchemy.exc import IntegrityError
-from werkzeug.exceptions import HTTPException
-
+import logging
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from sqlalchemy.exc import IntegrityError, DataError, OperationalError, SQLAlchemyError
 from app.extensions import db
-from app.models import Cuidador
+from app.models import Cuidador, Comuna, Especialidad, Auditoria
+
+# Configuración del registrador de errores (logging)
+logger = logging.getLogger(__name__)
+
+# Definición del Blueprint para la sección de cuidadores
+bp = Blueprint('cuidadores', __name__)
 
 
-bp = Blueprint("cuidadores", __name__, url_prefix="/cuidadores")
-
-ESTADOS = ("Pendiente", "Aprobado", "Rechazado")
-ESPECIALIDADES = (
-    "Acompañamiento",
-    "Cuidado general",
-    "Enfermería",
-    "Kinesiología",
-    "TENS",
-    "Otro",
-)
-
-# Reglas de validación centralizadas.
-EMAIL_REGEX = re.compile(
-    r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,63}$"
-)
-TELEFONO_REGEX = re.compile(r"^\+?\d{8,15}$")
-
-NOMBRE_MIN = 3
-NOMBRE_MAX = 120
-CORREO_MAX = 120
-TELEFONO_MAX = 16
-COMUNA_MIN = 2
-COMUNA_MAX = 80
-DESCRIPCION_MAX = 1000
-EXPERIENCIA_MIN = 0
-EXPERIENCIA_MAX = 60
-TARIFA_MINIMA = 10_000
-TARIFA_MAXIMA = 500_000
-
-
-def _normalizar_texto(valor: str) -> str:
-    """Elimina espacios sobrantes y normaliza espacios internos."""
-    return re.sub(r"\s+", " ", valor).strip()
-
-
-def _texto_formulario(campo: str) -> str:
-    """Obtiene y normaliza un campo de texto enviado por formulario."""
-    return _normalizar_texto(request.form.get(campo, ""))
-
-
-def _texto_consulta(campo: str, largo_maximo: int = 120) -> str:
-    """Obtiene, normaliza y limita un parámetro recibido por URL."""
-    valor = _normalizar_texto(request.args.get(campo, ""))
-    return valor[:largo_maximo]
-
-
-def _normalizar_telefono(valor: str) -> str:
-    """Elimina espacios, guiones, puntos y paréntesis del teléfono."""
-    return re.sub(r"[\s\-().]", "", valor)
-
-
-def _validar_largo(
-    valor: str,
-    nombre_campo: str,
-    minimo: int,
-    maximo: int,
-    errores: list[str],
-) -> None:
-    """Agrega un error cuando el largo del valor está fuera del rango."""
-    if not minimo <= len(valor) <= maximo:
-        errores.append(
-            f"{nombre_campo} debe tener entre {minimo} y {maximo} caracteres."
-        )
-
-
-def _leer_formulario() -> tuple[dict, list[str]]:
-    """Lee, normaliza y valida los datos del formulario de cuidadores."""
-    errores: list[str] = []
-
-    nombre = _texto_formulario("nombre")
-    correo = _texto_formulario("correo").lower()
-    telefono = _normalizar_telefono(_texto_formulario("telefono"))
-    comuna = _texto_formulario("comuna")
-    especialidad = _texto_formulario("especialidad")
-    descripcion = _texto_formulario("descripcion")
-    estado_validacion = _texto_formulario("estado_validacion") or "Pendiente"
-    disponible = request.form.get("disponible") == "on"
-
-    if nombre:
-        _validar_largo(nombre, "El nombre", NOMBRE_MIN, NOMBRE_MAX, errores)
-    else:
-        errores.append("El nombre es obligatorio.")
-
-    if not correo:
-        errores.append("El correo es obligatorio.")
-    elif len(correo) > CORREO_MAX:
-        errores.append(f"El correo no puede superar {CORREO_MAX} caracteres.")
-    elif not EMAIL_REGEX.fullmatch(correo):
-        errores.append("Ingresa un correo electrónico válido.")
-
-    if not telefono:
-        errores.append("El teléfono es obligatorio.")
-    elif len(telefono) > TELEFONO_MAX:
-        errores.append("El teléfono ingresado es demasiado largo.")
-    elif not TELEFONO_REGEX.fullmatch(telefono):
-        errores.append(
-            "El teléfono debe contener entre 8 y 15 dígitos "
-            "y puede comenzar con el símbolo +."
-        )
-
-    if comuna:
-        _validar_largo(comuna, "La comuna", COMUNA_MIN, COMUNA_MAX, errores)
-    else:
-        errores.append("La comuna es obligatoria.")
-
-    if especialidad not in ESPECIALIDADES:
-        errores.append("Selecciona una especialidad válida.")
-
-    if estado_validacion not in ESTADOS:
-        errores.append("Selecciona un estado de validación válido.")
-
-    if len(descripcion) > DESCRIPCION_MAX:
-        errores.append(
-            f"La descripción no puede superar {DESCRIPCION_MAX} caracteres."
-        )
-
-    try:
-        experiencia_anios = int(request.form.get("experiencia_anios", "0"))
-        if not EXPERIENCIA_MIN <= experiencia_anios <= EXPERIENCIA_MAX:
-            raise ValueError
-    except (TypeError, ValueError):
-        experiencia_anios = 0
-        errores.append(
-            f"Los años de experiencia deben estar entre "
-            f"{EXPERIENCIA_MIN} y {EXPERIENCIA_MAX}."
-        )
-
-    try:
-        tarifa_diaria = int(request.form.get("tarifa_diaria", "0"))
-        if not TARIFA_MINIMA <= tarifa_diaria <= TARIFA_MAXIMA:
-            raise ValueError
-    except (TypeError, ValueError):
-        tarifa_diaria = 0
-        minimo = f"${TARIFA_MINIMA:,}".replace(",", ".")
-        maximo = f"${TARIFA_MAXIMA:,}".replace(",", ".")
-        errores.append(
-            f"La tarifa diaria debe estar entre {minimo} y {maximo}."
-        )
-
-    datos = {
-        "nombre": nombre,
-        "correo": correo,
-        "telefono": telefono,
-        "comuna": comuna,
-        "especialidad": especialidad,
-        "experiencia_anios": experiencia_anios,
-        "tarifa_diaria": tarifa_diaria,
-        "disponible": disponible,
-        "estado_validacion": estado_validacion,
-        "descripcion": descripcion,
-    }
-
-    return datos, errores
-
-
-@bp.route("/", methods=["GET"])
+@bp.route('/', methods=['GET'])
 def lista():
-    """Muestra y filtra el listado de cuidadores."""
-    q = _texto_consulta("q")
-    comuna = _texto_consulta("comuna", COMUNA_MAX)
-    especialidad = _texto_consulta("especialidad", 100)
-    estado = _texto_consulta("estado", 20)
-
+    """Lista todos los cuidadores activos con soporte para búsqueda y filtros."""
     try:
-        stmt = db.select(Cuidador).order_by(Cuidador.nombre)
+        q = request.args.get('q', '').strip()
+        filtros = {'q': q}
 
+        query = Cuidador.query.filter_by(activo=True)
+
+        # Aplicar filtro de búsqueda por nombre si se ingresó un valor
         if q:
-            termino = f"%{q}%"
-            stmt = stmt.where(
-                or_(
-                    Cuidador.nombre.ilike(termino),
-                    Cuidador.correo.ilike(termino),
-                    Cuidador.descripcion.ilike(termino),
-                )
-            )
+            query = query.filter(Cuidador.nombre.ilike(f"%{q}%"))
 
-        if comuna:
-            stmt = stmt.where(Cuidador.comuna == comuna)
-        if especialidad:
-            stmt = stmt.where(Cuidador.especialidad == especialidad)
-        if estado:
-            stmt = stmt.where(Cuidador.estado_validacion == estado)
+        cuidadores = query.all()
+        return render_template('cuidadores/lista.html', cuidadores=cuidadores, filtros=filtros)
 
-        cuidadores = db.session.execute(stmt).scalars().all()
-        comunas = db.session.execute(
-            db.select(Cuidador.comuna)
-            .distinct()
-            .order_by(Cuidador.comuna)
-        ).scalars().all()
-
-    except Exception as error:
-        current_app.logger.exception(
-            "Error al consultar el listado de cuidadores: %s",
-            error,
-        )
-        flash("No fue posible cargar el listado de cuidadores.", "danger")
-        cuidadores = []
-        comunas = []
-
-    return render_template(
-        "cuidadores/lista.html",
-        cuidadores=cuidadores,
-        comunas=comunas,
-        especialidades=ESPECIALIDADES,
-        estados=ESTADOS,
-        filtros={
-            "q": q,
-            "comuna": comuna,
-            "especialidad": especialidad,
-            "estado": estado,
-        },
-    )
+    except SQLAlchemyError as e:
+        logger.error(f"Error al obtener la lista de cuidadores: {str(e)}")
+        flash("Ocurrió un error al cargar la lista de cuidadores.", "danger")
+        return render_template('cuidadores/lista.html', cuidadores=[], filtros={'q': ''})
 
 
-@bp.route("/<int:cuidador_id>", methods=["GET"])
-def detalle(cuidador_id: int):
-    """Muestra el detalle de un cuidador."""
-    try:
-        cuidador = db.get_or_404(Cuidador, cuidador_id)
-        return render_template("cuidadores/detalle.html", cuidador=cuidador)
-    except HTTPException:
-        raise
-    except Exception as error:
-        current_app.logger.exception(
-            "Error al cargar el cuidador %s: %s",
-            cuidador_id,
-            error,
-        )
-        flash("No fue posible cargar el perfil solicitado.", "danger")
-        return redirect(url_for("cuidadores.lista"))
+@bp.route('/<int:id>', methods=['GET'])
+def detalle(id):
+    """Muestra la vista detallada de un cuidador activo."""
+    cuidador = Cuidador.query.filter_by(id=id, activo=True).first_or_404()
+    return render_template('cuidadores/detalle.html', cuidador=cuidador)
 
 
-@bp.route("/nuevo", methods=["GET", "POST"])
+@bp.route('/crear', methods=['GET', 'POST'])
 def crear():
-    """Muestra el formulario y registra un nuevo cuidador."""
-    if request.method == "POST":
+    """Crea un nuevo cuidador vinculando Comuna, Especialidad y auditoría."""
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
+        comuna_nombre = request.form.get('comuna')
+        especialidad_nombre = request.form.get('especialidad')
+
+        if not nombre or not comuna_nombre or not especialidad_nombre:
+            flash("Todos los campos obligatorios deben ser completados.", "warning")
+            return render_template('cuidadores/formulario.html', cuidador=None)
+
         try:
-            datos, errores = _leer_formulario()
+            # Buscar o instanciar la Comuna
+            comuna = Comuna.query.filter_by(nombre=comuna_nombre).first()
+            if not comuna:
+                comuna = Comuna(nombre=comuna_nombre)
+                db.session.add(comuna)
 
-            if not errores:
-                cuidador = Cuidador(**datos)
-                db.session.add(cuidador)
-                db.session.commit()
+            # Buscar o instanciar la Especialidad
+            especialidad = Especialidad.query.filter_by(nombre=especialidad_nombre).first()
+            if not especialidad:
+                especialidad = Especialidad(nombre=especialidad_nombre)
+                db.session.add(especialidad)
 
-                current_app.logger.info(
-                    "Cuidador creado correctamente. id=%s correo=%s",
-                    cuidador.id,
-                    cuidador.correo,
-                )
-                flash("Cuidador registrado correctamente.", "success")
-                return redirect(
-                    url_for(
-                        "cuidadores.detalle",
-                        cuidador_id=cuidador.id,
-                    )
-                )
-
-        except IntegrityError as error:
-            db.session.rollback()
-            current_app.logger.warning(
-                "Intento de registrar un correo duplicado: %s",
-                error,
+            # Instanciar el Cuidador
+            nuevo_cuidador = Cuidador(
+                nombre=nombre,
+                telefono=telefono,
+                comuna=comuna,
+                especialidad=especialidad,
+                activo=True
             )
-            errores = ["Ya existe un cuidador registrado con ese correo."]
+            db.session.add(nuevo_cuidador)
 
-        except Exception as error:
-            db.session.rollback()
-            current_app.logger.exception(
-                "Error inesperado al registrar un cuidador: %s",
-                error,
+            # Registro en tabla Auditoria
+            log_auditoria = Auditoria(
+                accion="CREAR",
+                detalle=f"Se creó el cuidador: {nombre}"
             )
-            errores = [
-                "Ocurrió un error inesperado al registrar el cuidador."
-            ]
+            db.session.add(log_auditoria)
 
-        for mensaje in errores:
-            flash(mensaje, "danger")
-
-    return render_template(
-        "cuidadores/formulario.html",
-        cuidador=None,
-        estados=ESTADOS,
-        especialidades=ESPECIALIDADES,
-        titulo="Registrar cuidador",
-    )
-
-
-@bp.route("/<int:cuidador_id>/editar", methods=["GET", "POST"])
-def editar(cuidador_id: int):
-    """Muestra el formulario y actualiza un cuidador."""
-    try:
-        cuidador = db.get_or_404(Cuidador, cuidador_id)
-    except HTTPException:
-        raise
-    except Exception as error:
-        current_app.logger.exception(
-            "Error al buscar el cuidador %s: %s",
-            cuidador_id,
-            error,
-        )
-        flash("No fue posible cargar el cuidador para editarlo.", "danger")
-        return redirect(url_for("cuidadores.lista"))
-
-    if request.method == "POST":
-        try:
-            datos, errores = _leer_formulario()
-
-            if not errores:
-                for campo, valor in datos.items():
-                    setattr(cuidador, campo, valor)
-
-                db.session.commit()
-                current_app.logger.info(
-                    "Cuidador actualizado correctamente. id=%s",
-                    cuidador.id,
-                )
-                flash("Datos actualizados correctamente.", "success")
-                return redirect(
-                    url_for(
-                        "cuidadores.detalle",
-                        cuidador_id=cuidador.id,
-                    )
-                )
-
-        except IntegrityError as error:
-            db.session.rollback()
-            current_app.logger.warning(
-                "Correo duplicado al actualizar cuidador id=%s: %s",
-                cuidador_id,
-                error,
-            )
-            errores = [
-                "Ya existe otro cuidador registrado con ese correo."
-            ]
-
-        except Exception as error:
-            db.session.rollback()
-            current_app.logger.exception(
-                "Error inesperado al actualizar cuidador id=%s: %s",
-                cuidador_id,
-                error,
-            )
-            errores = [
-                "Ocurrió un error inesperado al actualizar el cuidador."
-            ]
-
-        for mensaje in errores:
-            flash(mensaje, "danger")
-
-    return render_template(
-        "cuidadores/formulario.html",
-        cuidador=cuidador,
-        estados=ESTADOS,
-        especialidades=ESPECIALIDADES,
-        titulo="Editar cuidador",
-    )
-
-
-@bp.route("/<int:cuidador_id>/eliminar", methods=["GET", "POST"])
-def eliminar(cuidador_id: int):
-    """Muestra la confirmación y elimina un cuidador."""
-    try:
-        cuidador = db.get_or_404(Cuidador, cuidador_id)
-    except HTTPException:
-        raise
-    except Exception as error:
-        current_app.logger.exception(
-            "Error al buscar cuidador para eliminar. id=%s: %s",
-            cuidador_id,
-            error,
-        )
-        flash("No fue posible cargar el cuidador.", "danger")
-        return redirect(url_for("cuidadores.lista"))
-
-    if request.method == "POST":
-        try:
-            db.session.delete(cuidador)
+            # Confirmar transacción completa
             db.session.commit()
 
-            current_app.logger.info(
-                "Cuidador eliminado correctamente. id=%s",
-                cuidador_id,
-            )
-            flash("Cuidador eliminado correctamente.", "success")
-            return redirect(url_for("cuidadores.lista"))
+            flash("Cuidador registrado exitosamente.", "success")
+            return redirect(url_for('cuidadores.lista'))
 
-        except Exception as error:
+        except (IntegrityError, DataError) as e:
             db.session.rollback()
-            current_app.logger.exception(
-                "Error inesperado al eliminar cuidador id=%s: %s",
-                cuidador_id,
-                error,
-            )
-            flash(
-                "Ocurrió un error inesperado al eliminar el cuidador.",
-                "danger",
-            )
+            logger.error(f"Error de datos/integridad al crear cuidador: {str(e)}")
+            flash("Error en los datos ingresados. Revisa el formulario e intenta de nuevo.", "danger")
+        except OperationalError as e:
+            db.session.rollback()
+            logger.error(f"Error operacional de la base de datos: {str(e)}")
+            flash("Error de conexión con la base de datos.", "danger")
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Error general de SQLAlchemy: {str(e)}")
+            flash("Ocurrió un error inesperado al guardar el registro.", "danger")
 
-    return render_template(
-        "cuidadores/confirmar_eliminar.html",
-        cuidador=cuidador,
-    )
+    return render_template('cuidadores/formulario.html', cuidador=None)
+
+
+@bp.route('/editar/<int:id>', methods=['GET', 'POST'])
+def editar(id):
+    """Edita la información de un cuidador existente."""
+    cuidador = Cuidador.query.filter_by(id=id, activo=True).first_or_404()
+
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        telefono = request.form.get('telefono')
+        comuna_nombre = request.form.get('comuna')
+        especialidad_nombre = request.form.get('especialidad')
+
+        try:
+            cuidador.nombre = nombre
+            cuidador.telefono = telefono
+
+            if comuna_nombre:
+                comuna = Comuna.query.filter_by(nombre=comuna_nombre).first()
+                if not comuna:
+                    comuna = Comuna(nombre=comuna_nombre)
+                    db.session.add(comuna)
+                cuidador.comuna = comuna
+
+            if especialidad_nombre:
+                especialidad = Especialidad.query.filter_by(nombre=especialidad_nombre).first()
+                if not especialidad:
+                    especialidad = Especialidad(nombre=especialidad_nombre)
+                    db.session.add(especialidad)
+                cuidador.especialidad = especialidad
+
+            # Auditoría
+            log_auditoria = Auditoria(
+                accion="ACTUALIZAR",
+                detalle=f"Se actualizó el cuidador ID: {cuidador.id}"
+            )
+            db.session.add(log_auditoria)
+            db.session.commit()
+
+            flash("Cuidador actualizado correctamente.", "success")
+            return redirect(url_for('cuidadores.detalle', id=cuidador.id))
+
+        except SQLAlchemyError as e:
+            db.session.rollback()
+            logger.error(f"Error al actualizar el cuidador ID {id}: {str(e)}")
+            flash("No se pudieron guardar los cambios por un error de base de datos.", "danger")
+
+    return render_template('cuidadores/formulario.html', cuidador=cuidador)
+
+
+@bp.route('/eliminar/<int:id>', methods=['GET', 'POST'])
+def eliminar(id):
+    """Ejecuta el borrado lógico (soft delete) marcando activo=False y registrando auditoría."""
+    cuidador = Cuidador.query.filter_by(id=id, activo=True).first_or_404()
+
+    if request.method == 'GET':
+        return render_template('cuidadores/confirmar_eliminar.html', cuidador=cuidador)
+
+    try:
+        # Borrado lógico
+        cuidador.activo = False
+
+        # Auditoría
+        log_auditoria = Auditoria(
+            accion="ELIMINAR_LOGICO",
+            detalle=f"Se desactivó el cuidador {cuidador.nombre} (ID: {cuidador.id})"
+        )
+        db.session.add(log_auditoria)
+        db.session.commit()
+
+        flash(f"El cuidador {cuidador.nombre} ha sido eliminado del sistema.", "warning")
+        return redirect(url_for('cuidadores.lista'))
+
+    except SQLAlchemyError as e:
+        db.session.rollback()
+        logger.error(f"Error al realizar borrado lógico del cuidador ID {id}: {str(e)}")
+        flash("Ocurrió un error al intentar eliminar el registro.", "danger")
+        return redirect(url_for('cuidadores.lista'))

@@ -1,107 +1,90 @@
 """
-Modelos de datos utilizados por la aplicación.
-
-Actualmente la plataforma cuenta con el modelo Cuidador, que representa
-los perfiles almacenados en la base de datos SQLite.
+Modelos de datos relacionales para la plataforma Cuida a tus Mayores.
 """
 
 from datetime import datetime
+from typing import List, Optional
 
-from sqlalchemy import Boolean, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .extensions import db
 
 
+class Comuna(db.Model):
+    __tablename__ = "comunas"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(80), unique=True, nullable=False, index=True)
+
+    cuidadores: Mapped[List["Cuidador"]] = relationship(back_populates="comuna_rel")
+
+    def __repr__(self) -> str:
+        return f"<Comuna {self.nombre}>"
+
+
+class Especialidad(db.Model):
+    __tablename__ = "especialidades"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
+
+    cuidadores: Mapped[List["Cuidador"]] = relationship(back_populates="especialidad_rel")
+
+    def __repr__(self) -> str:
+        return f"<Especialidad {self.nombre}>"
+
+
 class Cuidador(db.Model):
-    """
-    Representa a un cuidador registrado en la plataforma.
-
-    Cada instancia de esta clase corresponde a un registro de la tabla
-    cuidadores y puede ser creada, consultada, editada o eliminada
-    mediante las operaciones CRUD.
-    """
-
-    # Nombre de la tabla en la base de datos.
     __tablename__ = "cuidadores"
 
-    # Identificador único del registro.
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    # Datos personales y de contacto.
-    nombre: Mapped[str] = mapped_column(
-        String(120),
-        nullable=False,
-    )
+    nombre: Mapped[str] = mapped_column(String(120), nullable=False)
+    correo: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
+    telefono: Mapped[str] = mapped_column(String(30), nullable=False)
 
-    correo: Mapped[str] = mapped_column(
-        String(120),
-        unique=True,
-        nullable=False,
-        index=True,
-    )
+    # Relación a Comuna
+    comuna_id: Mapped[int] = mapped_column(ForeignKey("comunas.id"), nullable=False)
+    comuna_rel: Mapped["Comuna"] = relationship(back_populates="cuidadores")
 
-    telefono: Mapped[str] = mapped_column(
-        String(30),
-        nullable=False,
-    )
+    # Relación a Especialidad
+    especialidad_id: Mapped[int] = mapped_column(ForeignKey("especialidades.id"), nullable=False)
+    especialidad_rel: Mapped["Especialidad"] = relationship(back_populates="cuidadores")
 
-    comuna: Mapped[str] = mapped_column(
-        String(80),
-        nullable=False,
-        index=True,
-    )
+    experiencia_anios: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    tarifa_diaria: Mapped[int] = mapped_column(Integer, nullable=False)
+    descripcion: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
-    # Información profesional del cuidador.
-    especialidad: Mapped[str] = mapped_column(
-        String(100),
-        nullable=False,
-        index=True,
-    )
+    disponible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    estado_validacion: Mapped[str] = mapped_column(String(20), nullable=False, default="Pendiente")
 
-    experiencia_anios: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-    )
+    # Flag para Borrado Lógico (Soft Delete)
+    activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
 
-    tarifa_diaria: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-    )
+    creado_en: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
 
-    descripcion: Mapped[str] = mapped_column(
-        Text,
-        nullable=False,
-        default="",
-    )
-
-    # Estado del perfil dentro de la plataforma.
-    disponible: Mapped[bool] = mapped_column(
-        Boolean,
-        nullable=False,
-        default=True,
-    )
-
-    estado_validacion: Mapped[str] = mapped_column(
-        String(20),
-        nullable=False,
-        default="Pendiente",
-    )
-
-    # Fecha automática en que se creó el registro.
-    creado_en: Mapped[datetime] = mapped_column(
-        DateTime,
-        nullable=False,
-        default=datetime.utcnow,
+    # Relación a Historial de Auditoría
+    auditorias: Mapped[List["Auditoria"]] = relationship(
+        back_populates="cuidador_rel", 
+        cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
-        """
-        Retorna una representación legible del cuidador.
-
-        Esta representación es útil al inspeccionar objetos desde
-        la consola o durante la depuración.
-        """
-
         return f"<Cuidador {self.nombre}>"
+
+
+class Auditoria(db.Model):
+    __tablename__ = "auditorias"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    
+    cuidador_id: Mapped[Optional[int]] = mapped_column(ForeignKey("cuidadores.id"), nullable=True)
+    cuidador_rel: Mapped[Optional["Cuidador"]] = relationship(back_populates="auditorias")
+
+    accion: Mapped[str] = mapped_column(String(50), nullable=False)  # CREACION, EDICION, SOFT_DELETE
+    detalle: Mapped[str] = mapped_column(Text, nullable=True)
+    fecha: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self) -> str:
+        return f"<Auditoria {self.accion} - {self.fecha}>"
