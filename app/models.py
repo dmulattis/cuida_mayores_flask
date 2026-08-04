@@ -40,7 +40,7 @@ class Cuidador(db.Model):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
-    nombre: Mapped[str] = mapped_column(String(120), nullable=False)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False)
     correo: Mapped[str] = mapped_column(String(120), unique=True, nullable=False, index=True)
     telefono: Mapped[str] = mapped_column(String(30), nullable=False)
 

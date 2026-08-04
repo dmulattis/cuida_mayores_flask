@@ -6,11 +6,11 @@
     <div>
         <a class="volver d-inline-block mb-2" href="{{ url_for('cuidadores.lista') }}">← Volver al listado</a>
         <h1 class="h2 mb-1">{{ cuidador.nombre }}</h1>
-        <p class="mb-0">{{ cuidador.especialidad }} · {{ cuidador.comuna }}</p>
+        <p class="mb-0">{{ cuidador.especialidad_rel.nombre }} · {{ cuidador.comuna_rel.nombre }}</p>
     </div>
     <div class="acciones d-flex gap-2">
-        <a class="btn boton" href="{{ url_for('cuidadores.editar', cuidador_id=cuidador.id) }}">Editar</a>
-        <a class="btn boton boton-peligro" href="{{ url_for('cuidadores.eliminar', cuidador_id=cuidador.id) }}">Eliminar</a>
+        <a class="btn boton" href="{{ url_for('cuidadores.editar', id=cuidador.id) }}">Editar</a>
+        <a class="btn boton boton-peligro" href="{{ url_for('cuidadores.eliminar', id=cuidador.id) }}">Eliminar</a>
     </div>
 </div>
 
@@ -21,8 +21,8 @@
             <dl class="row mb-0">
                 <dt class="col-5 col-sm-4">Correo</dt><dd class="col-7 col-sm-8">{{ cuidador.correo }}</dd>
                 <dt class="col-5 col-sm-4">Teléfono</dt><dd class="col-7 col-sm-8">{{ cuidador.telefono }}</dd>
-                <dt class="col-5 col-sm-4">Comuna</dt><dd class="col-7 col-sm-8">{{ cuidador.comuna }}</dd>
-                <dt class="col-5 col-sm-4">Especialidad</dt><dd class="col-7 col-sm-8">{{ cuidador.especialidad }}</dd>
+                <dt class="col-5 col-sm-4">Comuna</dt><dd class="col-7 col-sm-8">{{ cuidador.comuna_rel.nombre }}</dd>
+                <dt class="col-5 col-sm-4">Especialidad</dt><dd class="col-7 col-sm-8">{{ cuidador.especialidad_rel.nombre }}</dd>
                 <dt class="col-5 col-sm-4">Experiencia</dt><dd class="col-7 col-sm-8">{{ cuidador.experiencia_anios }} año(s)</dd>
                 <dt class="col-5 col-sm-4">Tarifa diaria</dt><dd class="col-7 col-sm-8">${{ "{:,.0f}".format(cuidador.tarifa_diaria).replace(',', '.') }}</dd>
                 <dt class="col-5 col-sm-4">Disponibilidad</dt><dd class="col-7 col-sm-8">{{ "Disponible" if cuidador.disponible else "No disponible" }}</dd>
