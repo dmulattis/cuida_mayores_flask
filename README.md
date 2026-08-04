@@ -23,7 +23,7 @@ La aplicación permite:
 - Buscar y filtrar registros.
 - Visualizar el detalle de un cuidador.
 - Editar información existente.
-- Eliminar perfiles mediante confirmación.
+- Desactivar perfiles mediante confirmación y borrado lógico.
 - Validar datos ingresados en los formularios.
 - Mantener la información en una base de datos local SQLite.
 - Ejecutar pruebas automatizadas del ciclo CRUD.
@@ -74,11 +74,12 @@ cuida_mayores_flask/
 │   ├── templates/
 │   │   ├── cuidadores/
 │   │   │   ├── confirmar_eliminar.html
+│   │   │   ├── crear.html
 │   │   │   ├── detalle.html
-│   │   │   ├── formulario.html
 │   │   │   └── lista.html
 │   │   │
 │   │   ├── 404.html
+│   │   ├── 500.html
 │   │   ├── base.html
 │   │   └── inicio.html
 │   │
@@ -87,6 +88,7 @@ cuida_mayores_flask/
 │   └── models.py
 │
 ├── instance/
+│   ├── app.log
 │   └── cuida_mayores.db
 │
 ├── tests/
@@ -105,7 +107,7 @@ cuida_mayores_flask/
 | Archivo | Descripción |
 |---|---|
 | `app/__init__.py` | Crea y configura la aplicación mediante Application Factory. |
-| `app/models.py` | Define la entidad `Cuidador`. |
+| `app/models.py` | Define cuidadores, comunas, especialidades y auditorías. |
 | `app/extensions.py` | Inicializa SQLAlchemy. |
 | `app/cuidadores/routes.py` | Contiene las rutas y operaciones CRUD. |
 | `app/templates/` | Contiene las vistas HTML generadas con Jinja. |
@@ -289,7 +291,10 @@ controladas. Ante un fallo inesperado se revierte la transacción con
 `rollback`, se muestra un mensaje seguro al usuario y la traza técnica se
 registra en `instance/app.log`.
 
-El archivo de log rota al alcanzar 1 MB y conserva hasta tres respaldos.
+Un manejador global conserva las respuestas HTTP normales, como 404 y 405,
+y transforma solamente las excepciones inesperadas en una respuesta 500 sin
+exponer información técnica. El archivo de log rota al alcanzar 1 MB y
+conserva hasta tres respaldos.
 
 ---
 
@@ -297,11 +302,11 @@ El archivo de log rota al alcanzar 1 MB y conserva hasta tres respaldos.
 
 | Operación | Ruta | Descripción |
 |---|---|---|
-| Crear | `/cuidadores/nuevo` | Registra un nuevo cuidador. |
+| Crear | `/cuidadores/nuevo` o `/cuidadores/crear` | Registra un nuevo cuidador. |
 | Leer | `/cuidadores/` | Lista, busca y filtra perfiles. |
 | Leer detalle | `/cuidadores/<id>` | Muestra toda la información del cuidador. |
 | Actualizar | `/cuidadores/<id>/editar` | Modifica un registro existente. |
-| Eliminar | `/cuidadores/<id>/eliminar` | Elimina el perfil luego de una confirmación. |
+| Eliminar | `/cuidadores/<id>/eliminar` | Desactiva el perfil mediante borrado lógico. |
 
 Las rutas utilizan solicitudes `GET` para mostrar vistas y `POST` para registrar, actualizar o eliminar información.
 
@@ -318,7 +323,7 @@ Para comprobar el funcionamiento:
 5. Revisar el detalle del registro.
 6. Editar la comuna, especialidad o tarifa.
 7. Aplicar filtros en el listado.
-8. Eliminar el perfil.
+8. Desactivar el perfil mediante borrado lógico.
 9. Confirmar que el registro ya no aparece.
 
 ---
@@ -334,23 +339,20 @@ Instalar pytest:
 Ejecutar las pruebas:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest -q
+.\.venv\Scripts\python.exe -m pytest -v
 ```
 
-Resultado esperado:
+La suite utiliza bases SQLite temporales y verifica:
 
-```text
-3 passed
-```
-
-La prueba automatizada utiliza una base SQLite temporal y verifica:
-
+- Inicio, listado y filtros.
 - Creación de un cuidador.
 - Consulta del registro.
 - Actualización de información.
-- Eliminación del perfil.
-- Validación de longitudes y formatos.
-- Rollback y registro en log ante fallos inesperados.
+- Borrado lógico y auditoría.
+- Longitudes, formatos, relaciones y rangos numéricos.
+- Correos duplicados al crear y editar.
+- Rollback y traceback en el log ante fallos inesperados.
+- Respuestas 404, 405 y 500.
 
 ---
 
@@ -377,6 +379,7 @@ Archivos que no deben subirse al repositorio:
 __pycache__/
 *.pyc
 instance/*.db
+instance/*.log
 .env
 .vscode/
 ```

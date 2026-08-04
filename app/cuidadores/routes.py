@@ -59,7 +59,9 @@ def _leer_id(campo: str, nombre_campo: str, errores: list[str]) -> int | None:
         return None
 
 
-def _leer_formulario() -> tuple[dict[str, object], list[str]]:
+def _leer_formulario(
+    cuidador_id: int | None = None,
+) -> tuple[dict[str, object], list[str]]:
     errores: list[str] = []
 
     nombre = _texto("nombre")
@@ -74,11 +76,27 @@ def _leer_formulario() -> tuple[dict[str, object], list[str]]:
     else:
         _validar_longitud(nombre, "nombre", LARGO_MAX_NOMBRE, errores)
 
+    correo_valido = False
     if not correo:
         errores.append("El correo es obligatorio.")
     elif _validar_longitud(correo, "correo", LARGO_MAX_CORREO, errores):
         if PATRON_CORREO.fullmatch(correo) is None:
             errores.append("Ingresa un correo válido.")
+        else:
+            correo_valido = True
+
+    if correo_valido:
+        consulta_correo = db.select(Cuidador.id).where(
+            Cuidador.correo == correo
+        )
+        if cuidador_id is not None:
+            consulta_correo = consulta_correo.where(
+                Cuidador.id != cuidador_id
+            )
+        if db.session.scalar(consulta_correo) is not None:
+            errores.append(
+                "Ya existe un cuidador registrado con ese correo."
+            )
 
     if not telefono:
         errores.append("El teléfono es obligatorio.")
@@ -258,7 +276,7 @@ def editar(id: int):
     if request.method == "POST":
         errores: list[str] = []
         try:
-            datos, errores = _leer_formulario()
+            datos, errores = _leer_formulario(cuidador_id=cuidador.id)
             if not errores:
                 for campo, valor in datos.items():
                     setattr(cuidador, campo, valor)
