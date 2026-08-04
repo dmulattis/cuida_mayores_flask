@@ -1,7 +1,5 @@
 from pathlib import Path
-
 from flask import Flask, render_template
-
 from .extensions import db
 from .models import Cuidador
 
@@ -26,15 +24,26 @@ def create_app(test_config: dict | None = None) -> Flask:
 
     @app.route("/")
     def inicio():
-        total = db.session.scalar(db.select(db.func.count(Cuidador.id))) or 0
+        total = db.session.scalar(
+            db.select(db.func.count(Cuidador.id)).where(Cuidador.activo.is_(True))
+        ) or 0
         aprobados = db.session.scalar(
-            db.select(db.func.count(Cuidador.id)).where(Cuidador.estado_validacion == "Aprobado")
+            db.select(db.func.count(Cuidador.id)).where(
+                Cuidador.activo.is_(True),
+                Cuidador.estado_validacion == "Aprobado"
+            )
         ) or 0
         pendientes = db.session.scalar(
-            db.select(db.func.count(Cuidador.id)).where(Cuidador.estado_validacion == "Pendiente")
+            db.select(db.func.count(Cuidador.id)).where(
+                Cuidador.activo.is_(True),
+                Cuidador.estado_validacion == "Pendiente"
+            )
         ) or 0
         disponibles = db.session.scalar(
-            db.select(db.func.count(Cuidador.id)).where(Cuidador.disponible.is_(True))
+            db.select(db.func.count(Cuidador.id)).where(
+                Cuidador.activo.is_(True),
+                Cuidador.disponible.is_(True)
+            )
         ) or 0
         return render_template(
             "inicio.html",
