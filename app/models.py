@@ -2,13 +2,17 @@
 Modelos de datos relacionales para la plataforma Cuida a tus Mayores.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import List, Optional
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .extensions import db
+
+
+def ahora_utc() -> datetime:
+    return datetime.now(UTC)
 
 
 class Comuna(db.Model):
@@ -62,7 +66,9 @@ class Cuidador(db.Model):
     # Flag para Borrado Lógico (Soft Delete)
     activo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
 
-    creado_en: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    creado_en: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=ahora_utc
+    )
 
     # Relación a Historial de Auditoría
     auditorias: Mapped[List["Auditoria"]] = relationship(
@@ -84,7 +90,9 @@ class Auditoria(db.Model):
 
     accion: Mapped[str] = mapped_column(String(50), nullable=False)  # CREACION, EDICION, SOFT_DELETE
     detalle: Mapped[str] = mapped_column(Text, nullable=True)
-    fecha: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    fecha: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=ahora_utc
+    )
 
     def __repr__(self) -> str:
         return f"<Auditoria {self.accion} - {self.fecha}>"
