@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo if titulo else "Registrar Cuidador" }} | Cuida a tus Mayores{% endblock %}
+
+{% block content %}
+<a class="volver d-inline-block mb-2" href="{{ url_for('cuidadores.lista') }}">← Volver al listado</a>
+<h1 class="h2">{{ titulo if titulo else "Registrar nuevo cuidador" }}</h1>
+<p>Completa los antecedentes principales del perfil.</p>
+
+<form class="formulario panel p-4" method="post" action="{{ url_for('cuidadores.crear') }}" novalidate>
+    <div class="row g-3">
+        <!-- Nombre completo -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Nombre completo *
+                <input class="form-control" name="nombre" required maxlength="120" value="{{ request.form.get('nombre', cuidador.nombre if cuidador else '') }}">
+            </label>
+        </div>
+
+        <!-- Correo electrónico -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Correo electrónico *
+                <input class="form-control" type="email" name="correo" required maxlength="120" value="{{ request.form.get('correo', cuidador.correo if cuidador else '') }}">
+            </label>
+        </div>
+
+        <!-- Teléfono -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Teléfono *
+                <input class="form-control" name="telefono" required maxlength="30" value="{{ request.form.get('telefono', cuidador.telefono if cuidador else '') }}">
+            </label>
+        </div>
+
+        <!-- Comuna (Desplegable Relacional) -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Comuna *
+                {% set comuna_id_actual = request.form.get('comuna_id', cuidador.comuna_id if cuidador else '')|string %}
+                <select class="form-select" name="comuna_id" required>
+                    <option value="">Seleccionar comuna</option>
+                    {% for comuna in comunas %}
+                        <option value="{{ comuna.id }}" {% if comuna_id_actual == comuna.id|string %}selected{% endif %}>{{ comuna.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <!-- Especialidad (Desplegable Relacional) -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Especialidad *
+                {% set especialidad_id_actual = request.form.get('especialidad_id', cuidador.especialidad_id if cuidador else '')|string %}
+                <select class="form-select" name="especialidad_id" required>
+                    <option value="">Seleccionar especialidad</option>
+                    {% for especialidad in especialidades %}
+                        <option value="{{ especialidad.id }}" {% if especialidad_id_actual == especialidad.id|string %}selected{% endif %}>{{ especialidad.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </label>
+        </div>
+
+        <!-- Años de experiencia -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Años de experiencia *
+                <input class="form-control" type="number" name="experiencia_anios" min="0" max="60" required value="{{ request.form.get('experiencia_anios', cuidador.experiencia_anios if cuidador else 0) }}">
+            </label>
+        </div>
+
+        <!-- Tarifa diaria -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Tarifa diaria (CLP) *
+                <input class="form-control" type="number" name="tarifa_diaria" min="1" step="1000" required value="{{ request.form.get('tarifa_diaria', cuidador.tarifa_diaria if cuidador else '') }}">
+            </label>
+        </div>
+
+        <!-- Estado de validación -->
+        <div class="col-12 col-md-6">
+            <label class="form-label w-100">Estado de validación *
+                {% set estado_actual = request.form.get('estado_validacion', cuidador.estado_validacion if cuidador else 'Pendiente') %}
+                <select class="form-select" name="estado_validacion" required>
+                    <option value="Pendiente" {% if estado_actual == 'Pendiente' %}selected{% endif %}>Pendiente</option>
+                    <option value="Aprobado" {% if estado_actual == 'Aprobado' %}selected{% endif %}>Aprobado</option>
+                    <option value="Rechazado" {% if estado_actual == 'Rechazado' %}selected{% endif %}>Rechazado</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <!-- Descripción -->
+    <div class="mt-3">
+        <label class="form-label w-100">Descripción
+            <textarea class="form-control" name="descripcion" rows="5" maxlength="1000">{{ request.form.get('descripcion', cuidador.descripcion if cuidador else '') }}</textarea>
+        </label>
+    </div>
+
+    <!-- Disponibilidad -->
+    {% set disponible_actual = request.form.get('disponible') == 'on' if request.method == 'POST' else (cuidador.disponible if cuidador else True) %}
+    <div class="form-check mt-3">
+        <input class="form-check-input" type="checkbox" name="disponible" id="disponible" {% if disponible_actual %}checked{% endif %}>
+        <label class="form-check-label check" for="disponible">Disponible para recibir solicitudes</label>
+    </div>
+
+    <!-- Acciones -->
+    <div class="acciones d-flex flex-column flex-sm-row gap-2 mt-4">
+        <button class="btn boton" type="submit">Guardar</button>
+        <a class="btn boton boton-secundario" href="{{ url_for('cuidadores.lista') }}">Cancelar</a>
+    </div>
+</form>
+{% endblock %}
