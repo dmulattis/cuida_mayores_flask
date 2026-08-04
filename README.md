@@ -269,12 +269,27 @@ El formulario solicita:
 El sistema comprueba:
 
 - Campos obligatorios.
-- Estructura básica del correo electrónico.
+- Longitud máxima de los campos de texto antes de persistirlos.
+- Formato de correo electrónico mediante expresión regular.
+- Formato de teléfono mediante expresión regular (entre 8 y 15 dígitos).
 - Especialidad válida.
+- Comuna válida.
 - Estado de validación permitido.
 - Años de experiencia entre 0 y 60.
 - Tarifa diaria mayor que cero.
 - Correo electrónico no duplicado.
+
+Las validaciones se ejecutan en el backend, incluso si se omiten o alteran
+las restricciones HTML del formulario.
+
+## 5.5 Manejo de errores
+
+Las operaciones de creación, edición y eliminación usan transacciones
+controladas. Ante un fallo inesperado se revierte la transacción con
+`rollback`, se muestra un mensaje seguro al usuario y la traza técnica se
+registra en `instance/app.log`.
+
+El archivo de log rota al alcanzar 1 MB y conserva hasta tres respaldos.
 
 ---
 
@@ -325,7 +340,7 @@ Ejecutar las pruebas:
 Resultado esperado:
 
 ```text
-1 passed
+3 passed
 ```
 
 La prueba automatizada utiliza una base SQLite temporal y verifica:
@@ -334,7 +349,8 @@ La prueba automatizada utiliza una base SQLite temporal y verifica:
 - Consulta del registro.
 - Actualización de información.
 - Eliminación del perfil.
-- Ausencia de datos residuales al finalizar.
+- Validación de longitudes y formatos.
+- Rollback y registro en log ante fallos inesperados.
 
 ---
 

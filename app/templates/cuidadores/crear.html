@@ -7,12 +7,12 @@
 <h1 class="h2">{{ titulo if titulo else "Registrar nuevo cuidador" }}</h1>
 <p>Completa los antecedentes principales del perfil.</p>
 
-<form class="formulario panel p-4" method="post" action="{{ url_for('cuidadores.crear') }}" novalidate>
+<form class="formulario panel p-4" method="post" action="{{ url_for('cuidadores.editar', id=cuidador.id) if cuidador else url_for('cuidadores.crear') }}" novalidate>
     <div class="row g-3">
         <!-- Nombre completo -->
         <div class="col-12 col-md-6">
             <label class="form-label w-100">Nombre completo *
-                <input class="form-control" name="nombre" required maxlength="120" value="{{ request.form.get('nombre', cuidador.nombre if cuidador else '') }}">
+                <input class="form-control" name="nombre" required maxlength="50" value="{{ request.form.get('nombre', cuidador.nombre if cuidador else '') }}">
             </label>
         </div>
 
