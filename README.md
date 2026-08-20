@@ -8,8 +8,8 @@
 **Integrantes:** Diego Mulatti Morales · Alejandro Ortega Aranda · Omar Sanhueza Becar  
 **Repositorio:** https://github.com/dmulattis/cuida_mayores_flask  
 
-**URL despliegue Cloud:**  
-https://dmulattis.github.io/cuida_mayores_flask/ 
+**URL GitHub Pages:**  
+https://dmulattis.github.io/cuida_mayores_flask/
 
 </div>
 
@@ -30,19 +30,27 @@ La aplicación web permite:
 - Editar información existente.
 - Desactivar perfiles mediante confirmación y borrado lógico.
 - Validar datos ingresados en los formularios.
+- Registrar nuevas comunas cuando no existan en la base inicial.
+- Registrar nuevas especialidades o profesiones cuando no existan en la base inicial.
 - Mantener la información en una base de datos local SQLite.
 - Ejecutar pruebas automatizadas del ciclo CRUD.
 
 Para la **Semana 09 — Sumativa 3**, el proyecto incorpora además:
 
 - Integración de la propuesta de mejora desarrollada en la semana anterior.
-- Preparación para el despliegue del aplicativo en Cloud.
+- Publicación de una versión estática del prototipo mediante GitHub Pages.
+- Generación de la versión estática con Frozen-Flask.
 - Diseño de mockups móviles para representar las primeras interacciones de navegación.
 - Propuesta de integración entre el sistema web y una futura aplicación móvil.
+- Mejora visual de contraste en la barra superior.
+- Mejora funcional para registrar nuevas comunas y nuevas especialidades/profesiones desde el formulario.
+- Propuesta de agendamiento por horas, jornada diaria, semana o mes.
+- Propuesta de ruta del cuidador con validación GPS de inicio y término de jornada.
 
 > El prototipo web tiene fines académicos.  
 > Actualmente permite validar el funcionamiento mínimo viable mediante CRUD, pruebas automatizadas y diseño de una propuesta móvil inicial.  
-> Aún no incorpora autenticación real por roles, pagos funcionales, notificaciones reales ni conexión completa entre app móvil y backend.
+> La versión publicada en GitHub Pages es estática, por lo que no ejecuta lógica dinámica de backend ni operaciones reales de base de datos.  
+> Las operaciones reales del CRUD se validan en la aplicación Flask ejecutada en entorno local o Codespaces.
 
 ---
 
@@ -56,10 +64,12 @@ El proyecto fue desarrollado utilizando las siguientes tecnologías:
 | Framework web | Flask |
 | Acceso a datos | Flask-SQLAlchemy |
 | Base de datos | SQLite |
-| Interfaz | HTML5, CSS3 y Jinja |
+| Interfaz | HTML5, CSS3, Bootstrap, CSS propio y Jinja |
 | Pruebas | pytest |
+| Publicación estática | Frozen-Flask |
+| Despliegue visual | GitHub Pages |
+| Servidor WSGI | Gunicorn |
 | Control de versiones | Git y GitHub |
-| Despliegue Cloud | AWS / servicio Cloud equivalente |
 | Entorno recomendado | Visual Studio Code |
 
 Para comprobar que Python y Git están instalados:
@@ -101,6 +111,9 @@ cuida_mayores_flask/
 │   ├── extensions.py
 │   └── models.py
 │
+├── docs/
+│   └── Versión estática generada con Frozen-Flask para GitHub Pages
+│
 ├── instance/
 │   └── Archivos locales generados en ejecución, no versionados en Git
 │
@@ -109,6 +122,9 @@ cuida_mayores_flask/
 │   └── test_crud.py
 │
 ├── .gitignore
+├── application.py
+├── freeze.py
+├── Procfile
 ├── README.md
 ├── requirements.txt
 ├── run.py
@@ -124,9 +140,13 @@ cuida_mayores_flask/
 | `app/extensions.py` | Inicializa SQLAlchemy. |
 | `app/cuidadores/routes.py` | Contiene las rutas y operaciones CRUD. |
 | `app/templates/` | Contiene las vistas HTML generadas con Jinja. |
-| `app/static/css/estilos.css` | Define el diseño visual y responsivo. |
+| `app/static/css/estilos.css` | Define el diseño visual, responsivo y mejoras de contraste. |
 | `seed.py` | Crea la base local con perfiles de ejemplo. |
 | `run.py` | Inicia el servidor Flask. |
+| `application.py` | Expone la aplicación para despliegues compatibles con WSGI. |
+| `Procfile` | Define el comando de arranque para despliegues con Gunicorn. |
+| `freeze.py` | Genera la versión estática del sitio en la carpeta `docs/`. |
+| `docs/` | Contiene la versión estática publicada mediante GitHub Pages. |
 | `tests/test_crud.py` | Verifica el ciclo completo del CRUD. |
 
 ---
@@ -272,12 +292,18 @@ El formulario solicita:
 - Correo.
 - Teléfono.
 - Comuna.
-- Especialidad.
+- Especialidad o profesión.
 - Años de experiencia.
 - Tarifa diaria.
 - Disponibilidad.
 - Estado de validación.
 - Descripción profesional.
+
+Como mejora incorporada a partir de la retroalimentación docente, el formulario permite seleccionar **“Otra comuna”** u **“Otra especialidad / profesión”** cuando la opción requerida no existe en la base de datos inicial.
+
+En ese caso, el usuario puede escribir una nueva comuna o una nueva especialidad/profesión, la cual queda registrada y asociada al perfil del cuidador.
+
+Esta mejora resuelve la limitación inicial de depender únicamente de catálogos previamente cargados en la base de datos.
 
 ## 5.4 Validaciones
 
@@ -287,8 +313,8 @@ El sistema comprueba:
 - Longitud máxima de los campos de texto antes de persistirlos.
 - Formato de correo electrónico mediante expresión regular.
 - Formato de teléfono mediante expresión regular, entre 8 y 15 dígitos.
-- Especialidad válida.
-- Comuna válida.
+- Especialidad válida o nueva especialidad ingresada por el usuario.
+- Comuna válida o nueva comuna ingresada por el usuario.
 - Estado de validación permitido.
 - Años de experiencia entre 0 y 60.
 - Tarifa diaria mayor que cero.
@@ -334,6 +360,8 @@ Para comprobar el funcionamiento mínimo viable del sistema web se realizó una 
 9. Se accedió a la pantalla de confirmación de eliminación.
 10. Se eliminó el registro.
 11. Se verificó que el perfil eliminado dejara de aparecer en el listado.
+12. Se probó la opción **“Otra comuna”**.
+13. Se probó la opción **“Otra especialidad / profesión”**.
 
 Las evidencias obtenidas consideran:
 
@@ -344,6 +372,8 @@ Las evidencias obtenidas consideran:
 - Actualización exitosa de perfil.
 - Confirmación previa antes de eliminar.
 - Eliminación exitosa.
+- Registro de nueva comuna desde el formulario.
+- Registro de nueva especialidad/profesión desde el formulario.
 - Estado final del repositorio limpio y actualizado.
 
 ---
@@ -384,9 +414,9 @@ Esto respalda el funcionamiento del ciclo CRUD y la consistencia entre lo implem
 
 ---
 
-# 9. DESPLIEGUE EN CLOUD
+# 9. DESPLIEGUE Y PUBLICACIÓN EN GITHUB PAGES
 
-Para la Sumativa 3 se contempla el despliegue del aplicativo en un entorno Cloud, permitiendo que el prototipo pueda ser ejecutado desde una URL pública y no solamente desde el entorno local.
+Para la Sumativa 3 se realizó una publicación del prototipo mediante GitHub Pages, utilizando una versión estática generada con Frozen-Flask desde la aplicación Flask original.
 
 ## 9.1 Repositorio GitHub
 
@@ -396,19 +426,37 @@ El código fuente del proyecto se encuentra disponible en GitHub:
 https://github.com/dmulattis/cuida_mayores_flask
 ```
 
-## 9.2 URL del aplicativo desplegado
+## 9.2 URL pública del prototipo
 
-La URL pública del aplicativo desplegado debe registrarse en este apartado:
+La versión estática del prototipo se encuentra publicada en:
 
 ```text
-[PEGAR AQUÍ LA URL PÚBLICA DEL DESPLIEGUE CLOUD]
+https://dmulattis.github.io/cuida_mayores_flask/
 ```
 
 ## 9.3 Consideraciones del despliegue
 
-El despliegue Cloud permite validar que la aplicación web pueda ejecutarse en un entorno accesible desde internet. Para ello, el proyecto debe contar con sus dependencias definidas en `requirements.txt` y con la configuración necesaria según el servicio utilizado.
+GitHub Pages permite publicar contenido estático desde un repositorio. Por este motivo, se utilizó Frozen-Flask para generar una versión navegable del prototipo desde la carpeta `docs/`.
 
-En caso de utilizar AWS Elastic Beanstalk u otro servicio equivalente, el despliegue debe permitir que el docente acceda al prototipo web desde una URL pública, validando las vistas principales y las operaciones básicas del sistema.
+Esta publicación permite visualizar las principales vistas del sistema desde una URL pública. Sin embargo, al tratarse de una versión estática, no ejecuta lógica dinámica de backend ni operaciones reales de base de datos.
+
+Las operaciones dinámicas del CRUD fueron validadas en la aplicación Flask ejecutada en entorno local/Codespaces y mediante pruebas automatizadas con pytest.
+
+## 9.4 Generar nuevamente la versión estática
+
+Si se realizan cambios en vistas, estilos o rutas que deban verse en GitHub Pages, se debe regenerar la carpeta `docs/` con:
+
+```powershell
+.\venv\Scripts\python.exe .\freeze.py
+```
+
+Luego se deben subir los cambios:
+
+```powershell
+git add docs freeze.py requirements.txt
+git commit -m "Actualiza versión estática para GitHub Pages"
+git push origin main
+```
 
 ---
 
@@ -428,6 +476,8 @@ Las vistas móviles diseñadas consideran:
 - Resultados de cuidadores disponibles.
 - Perfil del cuidador.
 - Detalles de validación del cuidador.
+- Configuración de agenda del servicio.
+- Selección de modalidad de contratación.
 - Solicitud de servicio.
 - Resumen de solicitud.
 - Confirmación de solicitud.
@@ -441,7 +491,56 @@ La propuesta móvil mantiene una línea visual coherente con el propósito del p
 
 ---
 
-# 11. INTEGRACIÓN MÓVIL / WEB PROPUESTA
+# 11. MODELO DE AGENDAMIENTO PROPUESTO
+
+A partir de la retroalimentación docente, se identificó como punto de incertidumbre la forma en que se agenda el servicio del cuidador.
+
+Para resolverlo, se propone incorporar en el mockup móvil una pantalla intermedia de configuración de agenda antes de confirmar la solicitud.
+
+Esta pantalla permitiría definir:
+
+- Servicio por horas.
+- Servicio por jornada diaria.
+- Servicio semanal recurrente.
+- Servicio mensual.
+- Fecha de inicio.
+- Fecha de término, cuando corresponda.
+- Días requeridos.
+- Hora de inicio.
+- Hora de término.
+- Total estimado del servicio.
+
+De esta forma, la solicitud no queda limitada a una única modalidad de contratación y permite representar distintos escenarios reales de cuidado domiciliario.
+
+---
+
+# 12. RUTA DEL CUIDADOR Y VALIDACIÓN GPS PROPUESTA
+
+Además del flujo de la familia, se propone complementar el mockup con la ruta del cuidador.
+
+La ruta del cuidador considera:
+
+1. Inicio de sesión como cuidador.
+2. Visualización del panel de solicitudes recibidas.
+3. Revisión del detalle de la solicitud.
+4. Aceptación o rechazo del servicio.
+5. Visualización del próximo servicio confirmado.
+6. Inicio de jornada.
+7. Validación de ubicación mediante GPS.
+8. Registro de hora de inicio.
+9. Jornada en curso.
+10. Finalización de jornada.
+11. Validación GPS de término.
+12. Resumen de horas trabajadas.
+
+La restricción espacial mediante GPS busca verificar que el cuidador se encuentre en la dirección correspondiente antes de iniciar o finalizar la jornada.
+
+Si el cuidador se encuentra dentro del rango permitido, el sistema permite iniciar el servicio.  
+Si el cuidador se encuentra fuera del rango, el sistema muestra una alerta indicando que debe acercarse al domicilio registrado para poder marcar el inicio o término de la jornada.
+
+---
+
+# 13. INTEGRACIÓN MÓVIL / WEB PROPUESTA
 
 La integración propuesta considera que el sistema web Flask funcione como módulo administrativo para la gestión de cuidadores, mientras que la aplicación móvil actúe como interfaz principal para familias y cuidadores.
 
@@ -450,7 +549,7 @@ Desde la versión web se administran los perfiles de cuidadores, incluyendo:
 - Información personal.
 - Correo y teléfono.
 - Comuna.
-- Especialidad.
+- Especialidad o profesión.
 - Años de experiencia.
 - Tarifa diaria.
 - Disponibilidad.
@@ -465,6 +564,7 @@ La aplicación móvil permitiría a las familias:
 - Buscar cuidadores según ubicación, especialidad, horario y tarifa.
 - Revisar perfiles de cuidadores.
 - Consultar detalles de validación.
+- Configurar modalidad de agenda.
 - Solicitar un servicio de cuidado.
 - Confirmar una solicitud.
 - Revisar el estado del servicio.
@@ -476,13 +576,14 @@ Por su parte, el cuidador podría:
 - Aceptar o rechazar solicitudes.
 - Visualizar información básica de la familia solicitante.
 - Consultar horario, ubicación y especialidad requerida.
+- Marcar inicio y término de jornada mediante validación GPS.
 
 De esta forma, el sistema web y la aplicación móvil se complementan.  
 La web funciona como base de administración y gestión de datos, mientras que la app móvil entrega una experiencia directa al usuario final.
 
 ---
 
-# 12. PROPUESTA DE MEJORA INTEGRADA
+# 14. PROPUESTA DE MEJORA INTEGRADA
 
 La propuesta de mejora incorporada para esta etapa busca ampliar el alcance del prototipo web hacia una solución más completa y orientada al usuario final.
 
@@ -491,17 +592,24 @@ Las mejoras consideradas son:
 - Diseño de una experiencia móvil para familias y cuidadores.
 - Visualización de cuidadores validados.
 - Búsqueda por ubicación, especialidad, horario y tarifa.
-- Flujo de solicitud de servicio en tres pasos.
+- Flujo de solicitud de servicio en pasos.
+- Pantalla intermedia para definir modalidad de agendamiento.
 - Confirmación previa antes de enviar una solicitud.
 - Visualización del estado de la solicitud.
 - Panel del cuidador para aceptar o rechazar solicitudes.
+- Ruta del cuidador posterior a la aceptación del servicio.
+- Marcaje de inicio y término de jornada mediante restricción espacial GPS.
 - Manejo de estados alternativos, como ausencia de resultados, solicitud no aceptada o falta de conexión.
+- Mejora visual de contraste en la barra de navegación.
+- Registro de nuevas comunas desde el formulario.
+- Registro de nuevas especialidades o profesiones desde el formulario.
+- Publicación estática del prototipo mediante GitHub Pages y Frozen-Flask.
 
 Estas mejoras permiten proyectar el sistema más allá de un CRUD administrativo, acercándolo a una solución digital de intermediación entre familias y cuidadores.
 
 ---
 
-# 13. ANÁLISIS CRÍTICO DE DECISIONES
+# 15. ANÁLISIS CRÍTICO DE DECISIONES
 
 El uso de Flask permitió construir un prototipo funcional, liviano y comprensible para fines académicos. Esta decisión facilitó la implementación de rutas, vistas, modelos y pruebas automatizadas sin aumentar innecesariamente la complejidad técnica del proyecto.
 
@@ -509,13 +617,21 @@ El uso de SQLite fue adecuado para esta etapa, ya que permite validar la persist
 
 La separación por Blueprints, modelos y plantillas permite mantener una estructura ordenada y escalable. Esta organización favorece la mantenibilidad del código y permite que nuevas funcionalidades, como autenticación, solicitudes de servicio o paneles diferenciados por rol, puedan incorporarse de manera progresiva.
 
+La mejora de comunas y especialidades/profesiones responde a una limitación del prototipo inicial. En la primera versión, el registro de cuidadores dependía de catálogos previamente cargados. Con la mejora implementada, el usuario puede registrar una nueva comuna o profesión si no existe en la base de datos inicial, aumentando la flexibilidad del sistema.
+
+El ajuste de contraste visual fue incorporado para mejorar la legibilidad de la interfaz, especialmente en la barra superior, donde los enlaces de navegación debían mantener suficiente contraste sobre el fondo verde.
+
 El diseño de mockups móviles fue necesario para visualizar la evolución natural del sistema hacia una solución multiplataforma. La app móvil propuesta responde mejor a las necesidades de las familias y cuidadores, quienes probablemente interactuarían con el servicio desde un teléfono. En cambio, la versión web resulta útil como módulo de administración y validación de perfiles.
 
-El despliegue Cloud es relevante porque permite que el prototipo deje de depender exclusivamente del computador local. Al contar con una URL pública, el sistema puede ser revisado por terceros, validado por el docente y utilizado como evidencia de una versión mínimamente viable distribuible.
+La incorporación de una pantalla intermedia de agendamiento permite resolver la incertidumbre sobre la modalidad de contratación del cuidador. El servicio puede requerirse por horas, jornada diaria, semana o mes, por lo que se propone una etapa específica para configurar fecha, horario y recurrencia antes de confirmar la solicitud.
+
+La ruta del cuidador y la validación GPS permiten abordar la trazabilidad del servicio. Esta propuesta busca verificar que el cuidador se encuentre en la dirección correspondiente al iniciar y finalizar la jornada, reduciendo incertidumbre operacional y entregando mayor seguridad a las familias.
+
+GitHub Pages fue utilizado para cumplir con la publicación del prototipo en una URL pública. Sin embargo, al tratarse de un servicio orientado a contenido estático, se utilizó Frozen-Flask para generar una versión navegable del sitio. Las funciones dinámicas del CRUD se mantienen validadas en la aplicación Flask ejecutada localmente o en Codespaces.
 
 ---
 
-# 14. CONTROL DE VERSIONES
+# 16. CONTROL DE VERSIONES
 
 Para revisar los cambios:
 
@@ -555,7 +671,7 @@ Con esto se garantiza un historial de cambios trazable y un repositorio limpio d
 
 ---
 
-# 15. ESTADO ACTUAL DEL PROYECTO
+# 17. ESTADO ACTUAL DEL PROYECTO
 
 El estado actual del proyecto para la Sumativa 3 considera:
 
@@ -563,17 +679,30 @@ El estado actual del proyecto para la Sumativa 3 considera:
 - Aplicación Flask ejecutable en entorno local.
 - CRUD de cuidadores funcional.
 - Validaciones de formularios implementadas.
+- Registro de nuevas comunas desde el formulario.
+- Registro de nuevas especialidades/profesiones desde el formulario.
 - Manejo de errores y transacciones.
 - Pruebas automatizadas ejecutadas correctamente.
 - Mockups móviles diseñados.
 - Propuesta de integración móvil/web documentada.
-- Despliegue Cloud pendiente de registrar con URL pública.
+- Propuesta de agendamiento incorporada.
+- Ruta del cuidador propuesta.
+- Validación GPS propuesta para inicio y término de jornada.
+- Contraste visual mejorado.
+- Versión estática publicada en GitHub Pages mediante Frozen-Flask.
 
-Cuando el despliegue Cloud se encuentre activo, se debe reemplazar el marcador correspondiente por la URL pública del aplicativo.
+URL pública:
+
+```text
+https://dmulattis.github.io/cuida_mayores_flask/
+```
+
+Esta versión permite visualizar el prototipo desde una URL pública.  
+Las operaciones dinámicas del CRUD se validan en Flask local/Codespaces y mediante pruebas automatizadas con pytest.
 
 ---
 
-# 16. AUTORES
+# 18. AUTORES
 
 - **Diego Mulatti Morales**
 - **Alejandro Ortega Aranda**
