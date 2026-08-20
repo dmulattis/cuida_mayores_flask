@@ -1,0 +1,97 @@
+<!--código principal de la plantilla de inicio para la 
+aplicación web de administración de cuidadores. Esta plantilla extiende de "base.html" y define el contenido específico para la página de inicio, 
+incluyendo un encabezado hero, métricas del sistema y un panel que describe las operaciones CRUD disponibles.-->
+
+<!-- Plantilla base para la aplicación web de administración de cuidadores. -->
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inicio | Cuida a tus Mayores</title>
+
+    <!-- Bootstrap 5 (CDN) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+
+    <!-- CSS propio: se carga después de Bootstrap para poder sobrescribir estilos puntuales -->
+    <link rel="stylesheet" href="static/css/estilos.css">
+</head>
+<body>
+
+<header class="encabezado">
+    <nav class="navbar navbar-expand-md">
+        <div class="container">
+            <a class="navbar-brand marca" href="index.html">Cuida a tus Mayores</a>
+
+            <!-- Botón hamburguesa: visible solo en pantallas chicas -->
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navPrincipal" aria-controls="navPrincipal"
+                    aria-expanded="false" aria-label="Abrir navegación">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navPrincipal">
+                <ul class="navbar-nav ms-auto align-items-md-center gap-md-2">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="cuidadores/index.html">Cuidadores</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn boton boton-claro" href="cuidadores/nuevo">Registrar</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<main class="container contenido py-4">
+    
+        
+    
+
+    <div class="row">
+        <div class="col-12">
+            
+<section class="hero">
+    <div>
+        <span class="etiqueta">Prototipo </span>
+        <h1>Administración de cuidadores</h1>
+        <div class="acciones">
+            <a class="boton" href="cuidadores/index.html">Ver cuidadores</a>
+            <a class="boton boton-secundario" href="cuidadores/nuevo">Registrar cuidador</a>
+        </div>
+    </div>
+</section>
+
+<section class="metricas" aria-label="Resumen del sistema">
+    <article><strong>2</strong><span>Total registrados</span></article>
+    <article><strong>1</strong><span>Aprobados</span></article>
+    <article><strong>1</strong><span>Pendientes</span></article>
+    <article><strong>2</strong><span>Disponibles</span></article>
+</section>
+
+<section class="panel">
+    <h2>Operaciones incluidas</h2>
+    <div class="cuadricula-4">
+        <article><h3>Crear</h3><p>Registrar perfiles de cuidadores con sus datos principales.</p></article>
+        <article><h3>Leer</h3><p>Listar, buscar, filtrar y consultar el detalle de cada perfil.</p></article>
+        <article><h3>Actualizar</h3><p>Editar antecedentes, disponibilidad, tarifa y validación.</p></article>
+        <article><h3>Eliminar</h3><p>Desactivar un perfil mediante borrado lógico y conservar su auditoría.</p></article>
+    </div>
+</section>
+
+        </div>
+    </div>
+</main>
+
+<footer class="pie">
+    <div class="container">Prototipo académico de gestión de cuidadores.</div>
+</footer>
+
+<!-- Bootstrap 5 JS Bundle (incluye Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
