@@ -22,6 +22,8 @@ LARGO_MAX_NOMBRE = 50
 LARGO_MAX_CORREO = 120
 LARGO_MAX_TELEFONO = 30
 LARGO_MAX_DESCRIPCION = 1000
+LARGO_MAX_COMUNA = 80
+LARGO_MAX_ESPECIALIDAD = 100
 
 PATRON_CORREO = re.compile(
     r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@"
@@ -58,6 +60,43 @@ def _leer_id(campo: str, nombre_campo: str, errores: list[str]) -> int | None:
         errores.append(f"Selecciona una {nombre_campo} válida.")
         return None
 
+def _normalizar_texto_catalogo(valor: str) -> str:
+    return " ".join(valor.strip().split())
+
+
+def _obtener_o_crear_comuna(nombre: str) -> int:
+    nombre_normalizado = _normalizar_texto_catalogo(nombre)
+
+    comuna_existente = db.session.scalar(
+        db.select(Comuna).where(
+            db.func.lower(Comuna.nombre) == nombre_normalizado.lower()
+        )
+    )
+
+    if comuna_existente:
+        return comuna_existente.id
+
+    nueva_comuna = Comuna(nombre=nombre_normalizado)
+    db.session.add(nueva_comuna)
+    db.session.flush()
+    return nueva_comuna.id
+
+def _obtener_o_crear_especialidad(nombre: str) -> int:
+    nombre_normalizado = _normalizar_texto_catalogo(nombre)
+
+    especialidad_existente = db.session.scalar(
+        db.select(Especialidad).where(
+            db.func.lower(Especialidad.nombre) == nombre_normalizado.lower()
+        )
+    )
+
+    if especialidad_existente:
+        return especialidad_existente.id
+
+    nueva_especialidad = Especialidad(nombre=nombre_normalizado)
+    db.session.add(nueva_especialidad)
+    db.session.flush()
+    return nueva_especialidad.id
 
 def _leer_formulario(
     cuidador_id: int | None = None,
@@ -70,6 +109,12 @@ def _leer_formulario(
     descripcion = _texto("descripcion")
     estado_validacion = _texto("estado_validacion") or "Pendiente"
     disponible = request.form.get("disponible") == "on"
+
+    comuna_seleccionada = _texto("comuna_id")
+    comuna_nueva = _texto("comuna_nueva")
+
+    especialidad_seleccionada = _texto("especialidad_id")
+    especialidad_nueva = _texto("especialidad_nueva")
 
     if not nombre:
         errores.append("El nombre es obligatorio.")
@@ -112,18 +157,43 @@ def _leer_formulario(
         descripcion, "descripción", LARGO_MAX_DESCRIPCION, errores
     )
 
-    comuna_id = _leer_id("comuna_id", "comuna", errores)
-    if comuna_id is not None and db.session.get(Comuna, comuna_id) is None:
-        errores.append("Selecciona una comuna válida.")
+    comuna_id: int | None = None
+    crear_comuna = False
 
-    especialidad_id = _leer_id(
-        "especialidad_id", "especialidad", errores
-    )
-    if (
-        especialidad_id is not None
-        and db.session.get(Especialidad, especialidad_id) is None
-    ):
-        errores.append("Selecciona una especialidad válida.")
+    if comuna_seleccionada == "otra":
+        if not comuna_nueva:
+            errores.append("Ingresa el nombre de la nueva comuna.")
+        elif _validar_longitud(
+            comuna_nueva, "nueva comuna", LARGO_MAX_COMUNA, errores
+        ):
+            crear_comuna = True
+    else:
+        comuna_id = _leer_id("comuna_id", "comuna", errores)
+        if comuna_id is not None and db.session.get(Comuna, comuna_id) is None:
+            errores.append("Selecciona una comuna válida.")
+
+    especialidad_id: int | None = None
+    crear_especialidad = False
+
+    if especialidad_seleccionada == "otra":
+        if not especialidad_nueva:
+            errores.append("Ingresa el nombre de la nueva especialidad o profesión.")
+        elif _validar_longitud(
+            especialidad_nueva,
+            "nueva especialidad o profesión",
+            LARGO_MAX_ESPECIALIDAD,
+            errores,
+        ):
+            crear_especialidad = True
+    else:
+        especialidad_id = _leer_id(
+            "especialidad_id", "especialidad", errores
+        )
+        if (
+            especialidad_id is not None
+            and db.session.get(Especialidad, especialidad_id) is None
+        ):
+            errores.append("Selecciona una especialidad válida.")
 
     if estado_validacion not in ESTADOS:
         errores.append("Selecciona un estado de validación válido.")
@@ -144,6 +214,13 @@ def _leer_formulario(
         tarifa_diaria = 0
         errores.append("La tarifa diaria debe ser mayor que cero.")
 
+    if not errores:
+        if crear_comuna:
+            comuna_id = _obtener_o_crear_comuna(comuna_nueva)
+
+        if crear_especialidad:
+            especialidad_id = _obtener_o_crear_especialidad(especialidad_nueva)
+
     datos: dict[str, object] = {
         "nombre": nombre,
         "correo": correo,
@@ -156,6 +233,7 @@ def _leer_formulario(
         "estado_validacion": estado_validacion,
         "disponible": disponible,
     }
+
     return datos, errores
 
 

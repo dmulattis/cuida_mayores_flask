@@ -78,11 +78,11 @@
             </label>
         </div>
 
-        <!-- Comuna (Desplegable Relacional) -->
+        <!-- Comuna -->
         <div class="col-12 col-md-6">
             <label class="form-label w-100">Comuna *
                 
-                <select class="form-select" name="comuna_id" required>
+                <select class="form-select" name="comuna_id" id="comuna_id" required>
                     <option value="">Seleccionar comuna</option>
                     
                         <option value="1" >Concepción</option>
@@ -91,15 +91,23 @@
                     
                         <option value="2" >Talcahuano</option>
                     
+                    <option value="otra" >Otra comuna</option>
                 </select>
             </label>
         </div>
 
-        <!-- Especialidad (Desplegable Relacional) -->
+        <!-- Nueva comuna -->
+        <div class="col-12 col-md-6" id="grupo-comuna-nueva" style="display: none;">
+            <label class="form-label w-100">Especificar nueva comuna *
+                <input class="form-control" name="comuna_nueva" id="comuna_nueva" maxlength="80" value="" placeholder="Ejemplo: Santiago">
+            </label>
+        </div>
+
+        <!-- Especialidad / Profesión -->
         <div class="col-12 col-md-6">
-            <label class="form-label w-100">Especialidad *
+            <label class="form-label w-100">Especialidad o profesión *
                 
-                <select class="form-select" name="especialidad_id" required>
+                <select class="form-select" name="especialidad_id" id="especialidad_id" required>
                     <option value="">Seleccionar especialidad</option>
                     
                         <option value="1" >Cuidado Adulto Mayor</option>
@@ -108,7 +116,15 @@
                     
                         <option value="3" >Kinesiología</option>
                     
+                    <option value="otra" >Otra especialidad / profesión</option>
                 </select>
+            </label>
+        </div>
+
+        <!-- Nueva especialidad -->
+        <div class="col-12 col-md-6" id="grupo-especialidad-nueva" style="display: none;">
+            <label class="form-label w-100">Especificar nueva especialidad o profesión *
+                <input class="form-control" name="especialidad_nueva" id="especialidad_nueva" maxlength="100" value="" placeholder="Ejemplo: Terapeuta Ocupacional">
             </label>
         </div>
 
@@ -159,6 +175,40 @@
         <a class="btn boton boton-secundario" href="index.html">Cancelar</a>
     </div>
 </form>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const selectComuna = document.getElementById("comuna_id");
+    const grupoComunaNueva = document.getElementById("grupo-comuna-nueva");
+    const inputComunaNueva = document.getElementById("comuna_nueva");
+
+    const selectEspecialidad = document.getElementById("especialidad_id");
+    const grupoEspecialidadNueva = document.getElementById("grupo-especialidad-nueva");
+    const inputEspecialidadNueva = document.getElementById("especialidad_nueva");
+
+    function actualizarCampoNuevo(select, grupo, input) {
+        if (select.value === "otra") {
+            grupo.style.display = "block";
+            input.required = true;
+        } else {
+            grupo.style.display = "none";
+            input.required = false;
+            input.value = "";
+        }
+    }
+
+    actualizarCampoNuevo(selectComuna, grupoComunaNueva, inputComunaNueva);
+    actualizarCampoNuevo(selectEspecialidad, grupoEspecialidadNueva, inputEspecialidadNueva);
+
+    selectComuna.addEventListener("change", function () {
+        actualizarCampoNuevo(selectComuna, grupoComunaNueva, inputComunaNueva);
+    });
+
+    selectEspecialidad.addEventListener("change", function () {
+        actualizarCampoNuevo(selectEspecialidad, grupoEspecialidadNueva, inputEspecialidadNueva);
+    });
+});
+</script>
 
         </div>
     </div>
